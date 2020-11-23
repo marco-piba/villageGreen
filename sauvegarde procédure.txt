@@ -1,0 +1,19 @@
+-- Sauvegarde procédure --
+
+Dans le commande windows , je me positionne dans le fichier bin de la version mysql ou se trouve ma bdd :
+C:\wamp\bin\mysql\mysql8.0.21\bin
+
+puis je sauvegarde ma bdd dans le fichier Backup ultérieurement créer grace a la commande suivante :
+mysqldump --user=root --password= --databases village_green > C:\Backup\backup_vilage_green.sql
+
+
+-- Restore procédure --
+
+
+Dans le commande windows , je me positionne dans le fichier bin de la version mysql ou je souhaite installer ma bdd :
+C:\wamp\bin\mysql\mysql8.0.21\bin
+
+puis je restore:
+mysql --user=root --password= < C:\Backup\backup_village_green.sql
+
+
