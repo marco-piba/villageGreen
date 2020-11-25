@@ -110,7 +110,7 @@ CREATE TABLE IF NOT EXISTS produits(
    pro_unit_prix DECIMAL(7,2),
    pro_photo VARCHAR(4),
    pro_stock INT NOT NULL,
-   pro_enligne BINARY NOT NULL,
+   pro_enligne BOOLEAN,
    pro_rub_id INT NOT NULL,
    pro_four_id INT NOT NULL,
    PRIMARY KEY(pro_ref),
