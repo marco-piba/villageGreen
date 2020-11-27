@@ -1,0 +1,14 @@
+
+DELIMITER $
+
+DROP PROCEDURE IF EXISTS avg_delay $
+
+CREATE PROCEDURE avg_delay()
+
+BEGIN 
+
+select AVG(datediff(com_paym_date,com_date)) as `delai moyen de livraison` from commande;
+
+END $
+
+DELIMITER ;

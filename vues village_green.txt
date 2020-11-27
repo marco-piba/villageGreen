@@ -1,0 +1,4 @@
+3.3 - Gérer les vues
+3.3 - Créez une vue correspondant à la jointure Produits - Fournisseurs
+
+create view `v_pro_four` as select  * from fournisseurs join produits on four_id =pro_four_id

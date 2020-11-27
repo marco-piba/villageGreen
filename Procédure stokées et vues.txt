@@ -1,0 +1,17 @@
+Créez une procédure stockée :
+3.2.1 - qui renvoie le délai moyen entre la date de commande et la date de facturation
+
+
+DELIMITER $
+
+DROP PROCEDURE IF EXISTS avg_delay $
+
+CREATE PROCEDURE avg_delay()
+
+BEGIN 
+
+select AVG(datediff(com_paym_date,com_date)) as `delai moyen de livraison` from commande;
+
+END $
+
+DELIMITER ;
