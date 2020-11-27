@@ -13,12 +13,6 @@ CREATE TABLE IF NOT EXISTS rubriques(
    FOREIGN KEY(rub_parent_id) REFERENCES rubriques(rub_id)
 )ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
-DROP TABLE IF EXISTS coefficient_client;
-CREATE TABLE IF NOT EXISTS coefficient_client(
-   coeff_prix DECIMAL(2,1),
-   coeff_lib VARCHAR(15) NOT NULL,
-   PRIMARY KEY(coeff_prix)
-)ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 DROP TABLE IF EXISTS commerciaux;
 CREATE TABLE IF NOT EXISTS commerciaux(
@@ -72,34 +66,45 @@ CREATE TABLE IF NOT EXISTS clients(
    cli_pays_sig VARCHAR(2) NOT NULL,
    cli_commerc_id INT NOT NULL,
    cli_coeff_prix DECIMAL(2,1) NOT NULL,
+   cli_coeff_lib VARCHAR(15) NOT NULL, 
    PRIMARY KEY(cli_ref),
    FOREIGN KEY(cli_pays_sig) REFERENCES pays(pays_sig),
-   FOREIGN KEY(cli_commerc_id) REFERENCES commerciaux(commerc_id),
-   FOREIGN KEY(cli_coeff_prix) REFERENCES coefficient_client(coeff_prix)
+   FOREIGN KEY(cli_commerc_id) REFERENCES commerciaux(commerc_id)
 )ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+DROP TABLE IF EXISTS services;
+CREATE TABLE IF NOT EXISTS services(
+   serv_id INT NOT NULL AUTO_INCREMENT,
+   serv_nom VARCHAR(50) NOT NULL , 
+   serv_tel INT NOT NULL ,
+   serv_referent VARCHAR(50) NOT NULL,
+   PRIMARY KEY(serv_id)
+)ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
 
 DROP TABLE IF EXISTS commande;
 CREATE TABLE IF NOT EXISTS commande(
    com_ref VARCHAR(10),
    com_date DATE NOT NULL,
    com_cli_ref VARCHAR(5) NOT NULL,
+   com_fact_adress VARCHAR(150) NOT NULL,
+   com_paym_date DATE NOT NULL,
+   com_prix_total DECIMAL(7,2) NOT NULL,
+   com_tva INT NOT NULL,
+   com_tot_discount INT NOT NULL,
+   com_serv_id INT NOT NULL,
    PRIMARY KEY(com_ref),
-   FOREIGN KEY(com_cli_ref) REFERENCES clients(cli_ref)
+   FOREIGN KEY(com_cli_ref) REFERENCES clients(cli_ref),
+   FOREIGN KEY (com_serv_id) REFERENCES services (serv_id)
 )ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
-DROP TABLE IF EXISTS facture;
-CREATE TABLE IF NOT EXISTS facture(
-   fact_ref CHAR(7),
-   fact_adress VARCHAR(150) NOT NULL,
-   fact_paym_date DATE NOT NULL,
-   fact_cmd_total DECIMAL(7,2) NOT NULL,
-   fact_date DATE NOT NULL,
-   fact_tot_discount INT,
-   fact_coeff_prix DECIMAL(2,1) NOT NULL,
-   fact_com_ref VARCHAR(10) NOT NULL,
-   PRIMARY KEY(fact_ref),
-   FOREIGN KEY(fact_coeff_prix) REFERENCES coefficient_client(coeff_prix),
-   FOREIGN KEY(fact_com_ref) REFERENCES commande(com_ref)
+
+CREATE TABLE contacter(
+   cli_ref VARCHAR(5),
+   serv_id INT,
+   PRIMARY KEY(cli_ref, serv_id),
+   FOREIGN KEY(cli_ref) REFERENCES clients(cli_ref),
+   FOREIGN KEY(serv_id) REFERENCES services(serv_id)
 )ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 DROP TABLE IF EXISTS produits;
@@ -113,7 +118,9 @@ CREATE TABLE IF NOT EXISTS produits(
    pro_enligne BOOLEAN,
    pro_rub_id INT NOT NULL,
    pro_four_id INT NOT NULL,
+   pro_serv_id INT NOT NULL,
    PRIMARY KEY(pro_ref),
+   FOREIGN KEY (pro_serv_id) REFERENCES services(serv_id),
    FOREIGN KEY(pro_rub_id) REFERENCES rubriques(rub_id),
    FOREIGN KEY(pro_four_id) REFERENCES fournisseurs(four_id)
 )ENGINE=InnoDB DEFAULT CHARSET=utf8;
@@ -134,6 +141,7 @@ CREATE TABLE IF NOT EXISTS ligne_de_commande(
 DROP TABLE IF EXISTS ligne_de_livraison;
 CREATE TABLE IF NOT EXISTS ligne_de_livraison(
    lign_livr_id INT NOT NULL AUTO_INCREMENT,
+   lign_livr_qtite INT NOT NULL,
    lign_livr_lign_cmd_id INT NOT NULL,
    lign_livr_livr_id INT NOT NULL,
    PRIMARY KEY(lign_livr_id),
@@ -466,19 +474,27 @@ values (1,'Accessoires',NULL),(2,'Amplificateurs',NULL),(3,'Baguette direction',
 INSERT INTO rubriques (`rub_id`,`rub_nom`,`rub_parent_id`) 
 values ('14','Cordes','1'),('15','Housses','1'),('16','Portre-partitions','1'),('17','Lutrins','1'),('18','Guitares accoustiques','2'),('19','Guitares électriques','2'),('20','Batteries Accoustiques','4'),('21','Cymbales','4'),('22','Caisses claires','4'),('23','Appeaux','6'),('24','Boites à tonnerres','6'),('25','Carillons','6'),('26','Guitares','8'),('27','Mandolines','8'),('28','Ukulélé','8'),('29','Bois','9'),('30','Cuivres','9'),('31','Flutes à bec','9'),('32','Harmonica','9'),('33','Tam/Winds gongs','11'),('34','Percussions du monde','11'),('35','Percussions enfants','11'),('36','violons accessoires','12'),('37','Micros','13'),('38','Stands','13'),('39','Cables','13');
 
+-- alimenter service  --
+INSERT INTO `services` (`serv_id`,`serv_nom`,`serv_tel`,`serv_referent`) 
+VALUES (1,"service après-vente","0276682865","Madeline"),
+(2,"service comptabilité","0469593228","Sydnee"),
+(3,"service commercial","0579875538","Denton"),
+(4,"service technique","0518961349","Ima"),
+(5,"service achat","0865800553","Damon");
+
 -- alimenter produits --
-insert into produits (pro_ref,pro_lib,pro_desc,pro_unit_prix,pro_photo,pro_stock,pro_enligne,pro_rub_id,pro_four_id) 
+insert into produits (pro_ref,pro_lib,pro_desc,pro_unit_prix,pro_photo,pro_stock,pro_enligne,pro_rub_id,pro_four_id,pro_serv_id) 
 values ("GAC56","Gold tone","Banjo Bluegrass à 5 cordes, avec housse
 - Fût: Composite
 - Anneau de tension: Métal lisse
 - Repose-bras: Gold Tone gravé 
-- Peau: LC Frosted 11",364,"jpg",5,1,18,7),
+- Peau: LC Frosted 11",364,"jpg",5,1,18,7,5),
 ("GAC87","GEWA BALALAIKA 3","Banjo Bluegrass à 5 cordes, Prim-Balalaika, Diapason 440mm
 Table massive en épicéa
 Coque en Erable massif
 Manche érable, Touche en bois dur, 19 frettes argentées
 Plaque bois encastrée
-",487,"jpg",2,1,18,9),
+",487,"jpg",2,1,18,9,5),
 ("BAT79","PEARL DRUMS","- Fûts 100% érable 6 plis/5,4 mm
 - Coquilles NDL
 - Cerclages emboutis acier 1,6 mm
@@ -487,27 +503,27 @@ Plaque bois encastrée
 - Mini-muffler de grosse caisse
 - Pack d'accessoires HWP-830 inclus : 1 x pédale Demonator P-930, 1 x stand cymbale mixte BC-830, 1x stand cymbale droit C-830, 1 x stand caisse claire S-830 et 1 x stand hi-hat H-830
 - Livrée avec 2 supports de tom TH-900I
-",1099,"jpg",3,1,20,17),
+",1099,"jpg",3,1,20,17,5),
 
 ("BAT24","QUEST NATURAL","Finition laquée impeccable, fûts bouleau 6 plis, peaux Remo Ambassador UK, supports de tom à rotule, pack accessoires complet, la Quest s'offre tous les attributs d'une batterie de scène ou de studio sans vous en faire payer le prix"
-,699,"jpg",0,0,20,11),
+,699,"jpg",0,0,20,11,5),
 ("IE104","ROAD HR400","Le cor d'harmonie double Eagletone ROAD HR400 est facile d'émission, juste, et présente des qualités mécaniques rares pour un instrument d'étude. Il s'adresse tout particulièrement au débutant qui souhaite s'initier au cor double.
-",586,"jpg",3,1,9,13),
+",586,"jpg",3,1,9,13,5),
 ("IE145","ROAD FH100","Avec le bugle ROAD FH100, Eagletone propose aux débutants un instrument facile à jouer et juste pour une entrée en matière en toute sérénité.
 Le trigger sur la 3e coulisse d'accord permet un réglage précis de l'intonation et les sons obtenus sont doux et ronds. D'une grande souplesse d'émission, le ROAD FH100 est idéal pour commencer l'apprentissage du bugle.
-",699,"jpg",0,0,20,11),
+",699,"jpg",0,0,20,11,5),
 ("RD200","ROLAND RD","Équipé de deux générateurs de son indépendants, d'un clavier Premium et de contrôleurs évolués, le piano numérique de scène RD-2000 de Roland propose des performances sur scène et en studio sans équivalent. Mélangeant des technologies de piano haut de gamme avec des possibilités de contrôle étendues, cet instrument de nouvelle génération se pose en nouveau standard sur le marché des pianos de scène, et permet d'atteindre les plus hauts nivaux de créativité et d'inspiration.
-",3459,"jpg",2,1,7,21),
+",3459,"jpg",2,1,7,21,5),
 ("RD848","KORG C1 AIR BK","30 sons d'instruments superbement réalistes, la diffusion audio Bluetooth et l'enregistrement intégré, développeront la créativité à un niveau supérieur pour les joueurs de tous niveaux augmentant de manière significative leur plaisir musical. Conçu et fabriqué au Japon, le KORG C1 Air redéfinit le piano numérique.
-",859,"jpg",4,1,7,24),
+",859,"jpg",4,1,7,24,5),
 ("AC157","GS30 STAND DE GUITARE","- Stand universel pour guitare et basse 
 - Points de contact recouverts de mousse protectrice 
 - Stabilité assuré par embase trépied avec tampons anti-dérapants
-",15,"jpg",7,1,1,4),
+",15,"jpg",7,1,1,4,5),
 ("AC167","EAGLETONE CELPICK 12","Accessoire indispensable du guitariste, les médiators Eagletone sont disponibles en celluloid ou nylon de différents calibres et coloris. Bien finis, les extrémités polies permettent des attaques définies. Ils sont livrés par 12 ou 24 pièces panachées pour tester et trouver le médiator qui vous convient.
-",5.99,"jpg",25,1,1,3),
+",5.99,"jpg",25,1,1,3,5),
 ("AC789","CP100 ASL","Le capodastre CP100 est léger et s'adapte parfaitement à la position sur le manche pour une justesse constante. Le patin d'appui en caoutchouc absorbe les vibrations parasites et préserve les cordes.
-",9.50,"jpg",23,1,1,2),
+",9.50,"jpg",23,1,1,2,5),
 ("HO145","DELUXE 20 F","Conçue pour des guitaristes par des guitaristes, la gamme Eagletone DELUXE 20 compile toutes les qualités que nous avons appréciées dans les meilleures housses du marché. Les guitaristes et bassistes de l'équipe Eagletone ont tous apporté leur contribution à la réalisation d'une série idéale devant répondre à ces critères :
 - Protection de l'instrument 
 - Robustesse, durabilité
@@ -515,111 +531,106 @@ Le trigger sur la 3e coulisse d'accord permet un réglage précis de l'intonatio
 - Fonctionnalité (poches, fermetures, accessoires) 
 - Esthétique 
 - Prix abordable 
-",45,"jpg",4,1,15,6),
+",45,"jpg",4,1,15,6,5),
 ("HO657","DELUXE 30 CL","Conçue pour des guitaristes par des guitaristes, la gamme Eagletone DELUXE 30 compile toutes les qualités que nous avons appréciées dans les meilleures housses du marché. Les guitaristes et bassistes de l'équipe Eagletone ont tous apporté leur contribution à la réalisation d'une série idéale devant répondre à ces critères :
 - Protection de l'instrument 
 - Robustesse, durabilité
 - Confort et facilité de transport 
 - Fonctionnalité (poches, fermetures, accessoires) 
 - Esthétique 
-- Prix abordable ",59,"jpg",3,1,15,25),
+- Prix abordable ",59,"jpg",3,1,15,25,5),
 
 ("MIC56","AT2020 V","L’Audio Technica AT2020 apporte un nouveau standard de performances et de qualité chez les microphones de studio à condensateur à ce niveau de prix. Son diaphragme de faible masse est fabriqué sur mesure pour une réponse en fréquence étendue et une réponse dans les transitoires supérieure. Avec un bruit intrinsèque très faible, il est parfaitement adapté aux matériels d’enregistrements numériques actuels. Ce microphone offre une dynamique étendue et tient facilement des niveaux de pression acoustique élevés. Sa construction robuste est conçue pour durer pendant des années.
-",69,"jpg",5,3,13,8),
+",69,"jpg",5,3,13,8,5),
 ("MIC22","RODE NT1","Le RØDE NT1 est un micro révolutionnaire à condensateur de 1”. Bien que le boîtier du nouvel NT1 se distingue à peine de celui du NT1-A, le micro lui-même a fait l’objet d’une refonte intégrale. Seule la grille a été reprise telle quelle. Avec le NT1, les ingénieurs RØDE ont voulu réaliser un mariage d’innovation et de tradition: la capsule a donc été entièrement revue. Derrière son nom de code HF6, elle est l’exemple parfait de la fusion opérée par RØDE entre un design artistique et des techniques de fabrication de pointe.
-",86,"jpg",3,1,13,19),
+",86,"jpg",3,1,13,19,5),
 ("AMP21","AMPLI 562DJ","Entièrement repensés, les nouveaux amplis Rumble sont plus légers et plus puissants que jamais : avec davantage de mordant, ils n'en conservent pas moins l'esprit Fender classique. Avec un tout nouveau circuit d'overdrive commutable au pied et une gamme de voicings polyvalents contrôlés par trois boutons, auxquels s'ajoute un haut-parleur Eminence®, cet ampli délivre des sons puissants qui vous permettront de trouver le son juste en toute situation.
-",99,"jpg",6,1,2,3),
+",99,"jpg",6,1,2,3,5),
 ("AME77","EKIDS DSJ100B","La batterie enfant Ekids DSJ100 a tout d'une grande, sauf les dimensions ! Adaptée aux enfants de 7 ans et moins pour l'apprentissage de la batterie et déclinée en quatre coloris, un kit complet parfait pour débuter.
-",329,"jpg",2,1,5,15),
+",329,"jpg",2,1,5,15,5),
 ("AMP55","ORANGE AMPS OBC112","Équipé d'un Lavoce Neodynium 12'' de 400 Watts, l'OBC112 produit des graves bluffant en dépit de sa petite taille.",
-359,"jpg",1,1,2,22),
-("POR66","MU151 PUPITRE","Le pupitre orchestre MU151 dispose d'un large plateau à simple rebord pour garder vos partitions à portée des yeux. Son système de réglage vous permettra de régler la hauteur d'une seule main, tout en garantissant la stabilité du pupitre.",19,"jpg",1,1,16,9),
+359,"jpg",1,1,2,22,5),
+("POR66","MU151 PUPITRE","Le pupitre orchestre MU151 dispose d'un large plateau à simple rebord pour garder vos partitions à portée des yeux. Son système de réglage vous permettra de régler la hauteur d'une seule main, tout en garantissant la stabilité du pupitre.",19,"jpg",1,1,16,9,5);
 
 
 -- Alimenter commerciaux --
 INSERT INTO `commerciaux` (`commerc_nom`,`commerc_prenom`) VALUES ("Leon","Cheryl"),("Bernard","Kathleen"),("Fleming","Lareina"),("Clements","Kiara"),("Guthrie","Lane"),("Baird","Wing"),("Olsen","Nichole"),("Chang","Thomas"),("Frye","Wang"),("Casey","Lacy");
 
 
--- Alimenter coefficient_client --
-INSERT INTO `coefficient_client` (`coeff_prix`,`coeff_lib`) VALUES ("1.1","professionnel gros client"),("1.2","Professionnel bon client"),("1.3","Professionnel assez bon client"),("1.4","Particulier très bon client"),("1.5","Particulier client régulier"),("1.6","Particulier nouveau client");
-
 -- Alimenter clients --
 
-INSERT INTO `clients` (`cli_ref`,`cli_nom`,`cli_prenom`,`cli_adress`,`cli_postal`,`cli_ville`,`cli_mail`,`cli_phone`,`cli_pays_sig`,`cli_commerc_id`,`cli_coeff_prix`)
-VALUES (`53702`,"Shafira","Vance","P.O. Box 350, 9578 Lectus St.","410551","Baardegem","Mauris.neque@noncursus.co.uk","0521777759","GB",3,1.6),
-(`53703`,"Jamelia",NULL,"Ap #398-6608 Velit. Ave","90981","Vannes","scelerisque.mollis.Phasellus@Ut.fr","0340237899","FR",1,1.2),
-(`53704`,"Claire","Eric","Ap #492-9566 Et Road","05081-42756","Deventer","Curabitur.ut.odio@tinciduntvehicularisus.org","0989048661","US",2,1.5),
-(`53705`,"Alika","Jermaine","660-7974 Erat Av.","890512","Nampa","dolor.dolor@dignissimMaecenasornare.edu","0880051375","RU",5,1.6),
-(`53706`,"Caesar Adena",NULL,"Ap #617-750 Amet, St.","134440","Enkhuizen","commodo.auctor@lobortisultricesVivamus.com","0440596425","AU",3,1.3),
-(`53707`,"Keaton","Nadine","Ap #209-5721 At St.","46-982","San José del Guaviare","Nam.consequat@Morbi.ca","0787355025","CA",4,1.4),
-(`53708`,"Kibo Germaine",NULL,"9280 Vitae St.","19842","Meerle","magnis.dis.parturient@suscipitest.com","0582805072","GR",1.2,1),
-(`53709`,"Linda","Paul","503-646 Mauris Av.","44584","Bello","iaculis.quis.pede@vehiculaaliquetlibero.co.uk","0355625982","DE",5,1.6),
-(`53710`,"Price Knox",NULL,"P.O. Box 499, 1381 Nunc St.","05462","Harnai","metus.vitae@dignissim.co.uk","0688937760","NL",6,1.1),
-(`53711`,"Macaulay FLYNN",NULL,"142 At Road","82850","Termes","porttitor.vulputate.posuere@necanteMaecenas.ca","0753211076","CA",3,1.3);
+INSERT INTO `clients` (`cli_ref`,`cli_nom`,`cli_prenom`,`cli_adress`,`cli_postal`,`cli_ville`,`cli_mail`,`cli_phone`,`cli_pays_sig`,`cli_commerc_id`,`cli_coeff_prix`,`cli_coeff_lib`)
+VALUES ("53702","Shafira","Vance","P.O. Box 350, 9578 Lectus St.","410551","Baardegem","Mauris.neque@noncursus.co.uk","0521777759","GB",3,1.5,"particulier"),
+("53703","Jamelia",NULL,"Ap #398-6608 Velit. Ave","90981","Vannes","scelerisque.mollis.Phasellus@Ut.fr","0340237899","FR",1,1.3,"professionnel"),
+("53704","Claire","Eric","Ap #492-9566 Et Road","05081-42756","Deventer","Curabitur.ut.odio@tinciduntvehicularisus.org","0989048661","US",2,1.5,"particulier"),
+("53705","Alika","Jermaine","660-7974 Erat Av.","890512","Nampa","dolor.dolor@dignissimMaecenasornare.edu","0880051375","RU",5,1.5,"particulier"),
+("53706","Caesar Adena",NULL,"Ap #617-750 Amet, St.","134440","Enkhuizen","commodo.auctor@lobortisultricesVivamus.com","0440596425","AU",3,1.3,"professionnel"),
+("53707","Keaton","Nadine","Ap #209-5721 At St.","46-982","San José del Guaviare","Nam.consequat@Morbi.ca","0787355025","CA",4,1.5,"particulier"),
+("53708","Kibo Germaine",NULL,"9280 Vitae St.","19842","Meerle","magnis.dis.parturient@suscipitest.com","0582805072","GR",1,1.3,"professionnel"),
+("53709","Linda","Paul","503-646 Mauris Av.","44584","Bello","iaculis.quis.pede@vehiculaaliquetlibero.co.uk","0355625982","DE",5,1.5,"particulier"),
+("53710","Price Knox",NULL,"P.O. Box 499, 1381 Nunc St.","05462","Harnai","metus.vitae@dignissim.co.uk","0688937760","NL",6,1.3,"professionnel"),
+("53711","Macaulay FLYNN",NULL,"142 At Road","82850","Termes","porttitor.vulputate.posuere@necanteMaecenas.ca","0753211076","CA",3,1.3,"professionnel");
 
 
-INSERT INTO `clients` (`cli_ref`,`cli_nom`,`cli_prenom`,`cli_adress`,`cli_postal`,`cli_ville`,`cli_mail`,`cli_phone`,`cli_pays_sig`,`cli_commerc_id`,`cli_coeff_prix`) 
-VALUES ("53603","Joan","Regan","P.O. Box 325, 1089 Dui.Rad","43515","Viggianello","ut.sem.Nulla@laciniaorci.org","0974035811","ES",6,1.4),
-("53604","Wendy","Lani","2685 Feugiat. Ave","707891","Felitto","ipsum.Phasellus.vitae@mauris.net","0470305975","AR",8,1.6),
-("53605","Quinn Kenyon",NULL,"P.O. Box 230, 9858 Nisl. Rd.","616899","Mumbai","lobortis@Nullamvelitdui.co.uk","0963234543","IT",9,1.3),
-("53606","Amery PLATO",NULL,"2642 Ac Street","371414","San Ignacio","eu@utaliquamiaculis.edu","0293396739","HU",10,1.2),
-("53607","Herrod","Yolanda","4269 Hendrerit St.","V9S 5B2","Erchie","placerat.Cras@acmetusvitae.ca","0108742269","TH",7,1.5),
-("53608","Hanna","Jarrod","9965 Enim Ave","578111","Bothey","felis.purus@tristiquepellentesque.org","0534327176","CH",2,1.4),
-("53609","Odysseus",NULL,"Ap #349-8205 Volutpat. Avenue","3829 BE","Orp-le-Grand","et.malesuada.fames@tincidunt.co.uk","0644121773","GB",1,1.1),
-("53610","Justin","Louis","442-1792 Mollis Avenue","R9H 2C1","Bregenz","in.tempus@Proin.org","0779943092","US",9,1.6),
-("53611","RinahMaite",NULL,"Ap #127-1882 Malesuada. Avenue","Z2071","Limoges","nunc.risus@velturpisAliquam.org","0278920485","AT",8,1.3),
-("53612","Salvador","Sonia","5751 Netus Avenue","562116","Sant'Omero","non.lobortis@inceptos.org","0314865021",'RE',4,1.5);
+INSERT INTO `clients` (`cli_ref`,`cli_nom`,`cli_prenom`,`cli_adress`,`cli_postal`,`cli_ville`,`cli_mail`,`cli_phone`,`cli_pays_sig`,`cli_commerc_id`,`cli_coeff_prix`,`cli_coeff_lib`) 
+VALUES ("53603","Joan","Regan","P.O. Box 325, 1089 Dui.Rad","43515","Viggianello","ut.sem.Nulla@laciniaorci.org","0974035811","ES",6,1.5,"particulier"),
+("53604","Wendy","Lani","2685 Feugiat. Ave","707891","Felitto","ipsum.Phasellus.vitae@mauris.net","0470305975","AR",8,1.5,"particulier"),
+("53605","Quinn Kenyon",NULL,"P.O. Box 230, 9858 Nisl. Rd.","616899","Mumbai","lobortis@Nullamvelitdui.co.uk","0963234543","IT",9,1.3,"professionnel"),
+("53606","Amery PLATO",NULL,"2642 Ac Street","371414","San Ignacio","eu@utaliquamiaculis.edu","0293396739","HU",10,1.3,"professionnel"),
+("53607","Herrod","Yolanda","4269 Hendrerit St.","V9S 5B2","Erchie","placerat.Cras@acmetusvitae.ca","0108742269","TH",7,1.5,"particulier"),
+("53608","Hanna","Jarrod","9965 Enim Ave","578111","Bothey","felis.purus@tristiquepellentesque.org","0534327176","CH",2,1.5,"particulier"),
+("53609","Odysseus",NULL,"Ap #349-8205 Volutpat. Avenue","3829 BE","Orp-le-Grand","et.malesuada.fames@tincidunt.co.uk","0644121773","GB",1,1.3,"professionnel"),
+("53610","Justin","Louis","442-1792 Mollis Avenue","R9H 2C1","Bregenz","in.tempus@Proin.org","0779943092","US",9,1.5,"particulier"),
+("53611","RinahMaite",NULL,"Ap #127-1882 Malesuada. Avenue","Z2071","Limoges","nunc.risus@velturpisAliquam.org","0278920485","AT",8,1.3,"professionnel"),
+("53612","Salvador","Sonia","5751 Netus Avenue","562116","Sant'Omero","non.lobortis@inceptos.org","0314865021",'RE',4,1.5,"particulier");
 
-INSERT INTO `clients` (`cli_ref`,`cli_nom`,`cli_prenom`,`cli_adress`,`cli_postal`,`cli_ville`,`cli_mail`,`cli_phone`,`cli_pays_sig`,`cli_commerc_id`,`cli_coeff_prix`) 
-VALUES ("57603","DaiFleur",NULL,"702-3060 Est. Rd.","Z1898","Fauvillers","ligula@nislsemconsequat.org","0996787034","FR",10,1.1),
-("57604","Hyacinth",NULL,"P.O. Box 404, 3710 Ornare. St.","Z3774","Abolens","suscipit.nonummy.Fusce@et.co.uk","0562641824","GB",9,1.2),
-("57605","Perry","Melinda","798-3366 Id St.","K4C 7N4","Valleyview","erat@Nulla.ca","0593796816","CA",8,1.5),
-("57606","Montana William",NULL,"Ap #269-9938 Vulputate Rd.","48262","Midnapore","est.vitae@Phasellusdolorelit.edu","0139864863","LU",7,1.3),
-("57607","Flavia Xanthus",NULL,"340-4593 Ridiculus Ave","5711","Fort Smith","vitae.sodales@morbitristique.edu","0739751307","VE",6,1.2),
-("57608","Omar","Joel","P.O. Box 593, 1102 Sed Street","51006","Sint-Gillis-bij-Dendermonde","Ut.sagittis@tellusSuspendissesed.co.uk","0683231380","SG",5,1.6),
-("57609","Amos","Orson","218-6576 Vivamus Rd.","00648","Taldom","Fusce@Cumsociis.co.uk","0737776573","RO",4,1.6),
-("57610","Veda","Barbara","P.O. Box 572, 7909 Rutrum St.","48994","San Vicente del Caguán","urna.Nullam.lobortis@bibendum.edu","0664760337","BE",3,1.5),
-("57611","Danielle","Colin","P.O. Box 132, 7126 Lectus St.","1977","Chepén","Mauris@magnaSed.ca","0144372372","RU",2,1.4),
-("57612","Macaulay","Carol","Ap #285-4595 Etiam Street","26771","San Vicente del Caguán","diam.Duis@et.net","0925713237","AR",1,1.6);
+INSERT INTO `clients` (`cli_ref`,`cli_nom`,`cli_prenom`,`cli_adress`,`cli_postal`,`cli_ville`,`cli_mail`,`cli_phone`,`cli_pays_sig`,`cli_commerc_id`,`cli_coeff_prix`,`cli_coeff_lib`) 
+VALUES ("57603","DaiFleur",NULL,"702-3060 Est. Rd.","Z1898","Fauvillers","ligula@nislsemconsequat.org","0996787034","FR",10,1.3,"professionnel"),
+("57604","Hyacinth",NULL,"P.O. Box 404, 3710 Ornare. St.","Z3774","Abolens","suscipit.nonummy.Fusce@et.co.uk","0562641824","GB",9,1.3,"professionnel"),
+("57605","Perry","Melinda","798-3366 Id St.","K4C 7N4","Valleyview","erat@Nulla.ca","0593796816","CA",8,1.5,"particulier"),
+("57606","Montana William",NULL,"Ap #269-9938 Vulputate Rd.","48262","Midnapore","est.vitae@Phasellusdolorelit.edu","0139864863","LU",7,1.3,"professionnel"),
+("57607","Flavia Xanthus",NULL,"340-4593 Ridiculus Ave","5711","Fort Smith","vitae.sodales@morbitristique.edu","0739751307","VE",6,1.3,"professionnel"),
+("57608","Omar","Joel","P.O. Box 593, 1102 Sed Street","51006","Sint-Gillis-bij-Dendermonde","Ut.sagittis@tellusSuspendissesed.co.uk","0683231380","SG",5,1.5,"particulier"),
+("57609","Amos","Orson","218-6576 Vivamus Rd.","00648","Taldom","Fusce@Cumsociis.co.uk","0737776573","RO",4,1.5,"particulier"),
+("57610","Veda","Barbara","P.O. Box 572, 7909 Rutrum St.","48994","San Vicente del Caguán","urna.Nullam.lobortis@bibendum.edu","0664760337","BE",3,1.5,"particulier"),
+("57611","Danielle","Colin","P.O. Box 132, 7126 Lectus St.","1977","Chepén","Mauris@magnaSed.ca","0144372372","RU",2,1.5,"particulier"),
+("57612","Macaulay","Carol","Ap #285-4595 Etiam Street","26771","San Vicente del Caguán","diam.Duis@et.net","0925713237","AR",1,1.5,"particulier");
 
+-- alimenter table commande --
 
-
--- alimenter table client --
-
-INSERT INTO `commande` (`com_ref`,`com_date`,`com_cli_ref`) 
-VALUES (92350,"2020-10-10","57603"),
-(92351,"2020-11-23","53612"),
-(92352,"2020-10-09","57605"),
-(92353,"2020-09-07","57612"),
-(92354,"2020-10-11","57606"),
-(92355,"2020-09-08","57604"),
-(92356,"2020-10-19","57606"),
-(92357,"2020-11-18","57603"),
-(92358,"2020-09-20","53702"),
-(92359,"2020-08-28","57612");
-INSERT INTO `commande` (`com_ref`,`com_date`,`com_cli_ref`) 
-VALUES (92360,"2020-09-16","57605"),
-(92361,"2020-08-24","53612"),
-(92362,"2020-10-13","57605"),
-(92363,"2020-10-29","57603"),
-(92364,"2020-10-19","53703"),
-(92365,"2020-10-20","57612"),
-(92366,"2020-10-15","57603"),
-(92367,"2020-09-01","57605"),
-(92368,"2020-09-11","57603"),
-(92369,"2020-10-15","53612");
-INSERT INTO `commande` (`com_ref`,`com_date`,`com_cli_ref`) 
-VALUES (92370,"2020-09-04","53702"),
-(92371,"2020-09-12","53706"),
-(92372,"2020-10-22","57605"),
-(92373,"2020-10-09","57606"),
-(92374,"2020-10-25","53704"),
-(92375,"2020-08-27","57612"),
-(92376,"2020-11-08","53702"),
-(92377,"2020-09-23","53702"),
-(92378,"2020-09-05","57612"),
-(92379,"2020-09-09","53705");
+INSERT INTO `commande` (`com_ref`,`com_date`,`com_cli_ref`,`com_fact_adress`,`com_paym_date`,`com_prix_total`,`com_tva`,`com_tot_discount`,`com_serv_id`) 
+VALUES (92350,"2020-10-10","57603","702-3060 Est. Rd.","2020-10-30",86,20,null,3),
+(92351,"2020-11-23","53612","5751 Netus Avenue","2020-11-23",1099,20,null,3),
+(92352,"2020-10-09","57605","798-3366 Id St.","2020-10-09",387.96,20,null,3),
+(92353,"2020-09-07","57612","Ap #285-4595 Etiam Street","2020-09-07",586,20,20,3),
+(92354,"2020-10-11","57606","Ap #269-9938 Vulputate Rd.","2020-10-30",487,20,null,3),
+(92355,"2020-09-08","57604","P.O. Box 404, 3710 Ornare. St","2020-09-30",945,20,null,3),
+(92356,"2020-10-19","57606","Ap #269-9938 Vulputate Rd","2020-10-30",15,20,null,3),
+(92357,"2020-11-18","57603","702-3060 Est. Rd","2020-11-30",83.99,20,null,3),
+(92358,"2020-09-20","53702","P.O. Box 350, 9578 Lectus St","2020-09-20",59,20,null,3),
+(92359,"2020-08-28","57612","Ap #285-4595 Etiam Street","2020-08-28",86,20,10,3);
+INSERT INTO `commande` (`com_ref`,`com_date`,`com_cli_ref`,`com_fact_adress`,`com_paym_date`,`com_prix_total`,`com_tva`,`com_tot_discount`,`com_serv_id`) 
+VALUES (92360,"2020-09-16","57605","798-3366 Id St.","2020-09-16",3459,20,null,3),
+(92361,"2020-08-24","53612","5751 Netus Avenue","2020-08-24",86,20,null,3),
+(92362,"2020-10-13","57605","798-3366 Id St.","2020-10-13",19,20,null,3),
+(92363,"2020-10-29","57603","702-3060 Est. Rd.","2020-10-30",586,20,null,3),
+(92364,"2020-10-19","53703","Ap #398-6608 Velit. Ave","2020-10-30",487,20,null,3),
+(92365,"2020-10-20","57612","Ap #285-4595 Etiam Street","2020-10-20",91.99,20,null,3),
+(92366,"2020-10-15","57603","702-3060 Est. Rd.","2020-10-30",859,20,null,3),
+(92367,"2020-09-01","57605","798-3366 Id St","2020-09-01",359,20,null,3),
+(92368,"2020-09-11","57603","702-3060 Est. Rd.","2020-09-30",699,20,null,3),
+(92369,"2020-10-15","53612","5751 Netus Avenue","2020-10-15",99,20,null,3);
+INSERT INTO `commande` (`com_ref`,`com_date`,`com_cli_ref`,`com_fact_adress`,`com_paym_date`,`com_prix_total`,`com_tva`,`com_tot_discount`,`com_serv_id`) 
+VALUES (92370,"2020-09-04","53702","P.O. Box 350, 9578 Lectus St.","2020-09-04",859,20,null,3),
+(92371,"2020-09-12","53706","Ap #617-750 Amet, St.","2020-09-30",329,20,null,3),
+(92372,"2020-10-22","57605","798-3366 Id St.","2020-10-22",19,20,null,3),
+(92373,"2020-10-09","57606","Ap #269-9938 Vulputate Rd.","2020-10-30",59,20,null,3),
+(92374,"2020-10-25","53704","Ap #492-9566 Et Road","2020-10-25",699,20,null,3),
+(92375,"2020-08-27","57612","Ap #285-4595 Etiam Street","2020-08-27",375.98,20,null,3),
+(92376,"2020-11-08","53702","P.O. Box 350, 9578 Lectus St.","2020-11-08",69,20,null,3),
+(92377,"2020-09-23","53702","P.O. Box 350, 9578 Lectus St.","2020-09-23",99,20,null,3),
+(92378,"2020-09-05","57612","Ap #285-4595 Etiam Street","2020-09-05",699,20,20,3),
+(92379,"2020-09-09","53705","660-7974 Erat Av.","2020-09-09",487,20,null,3);
 
 
 -- alimenter ligne de commande --
@@ -646,7 +657,7 @@ insert into `ligne_de_commande`(lign_cmd_id,lign_cmd_unitprix,lign_cmd_qtite,lig
 values 
 (16,86,1,"MIC22",92361),
 (17,19,1,"POR66",92362),
-(18,586,1,"IE108",92363),
+(18,586,1,"IE104",92363),
 (19,487,1,"GAC87",92364),
 (20,5.99,1,"AC167",92365),
 (21,86,1,"MIC22",92365),
@@ -677,8 +688,8 @@ VALUES (1,"5751 Netus Avenue","2020-08-27",NULL,"livré"),
 (3,"Ap #285-4595 Etiam Street","2020-08-28",NULL,'livré'),
 (4,"798-3366 Id St.","2020-09-04",NULL,'livré'),
 (5,"P.O. Box 350, 9578 Lectus St.","2020-09-17","colis oublié sur les quais","livré"),
-(6,"P.O. Box 350, 9578 Lectus St.","2020-09-08",null,"livré"),
-(7,"P.O. Box 404, 3710 Ornare. St.","2020-09-10",null,"livré"),
+(6,"Ap #285-4595 Etiam Street","2020-09-08",null,"livré"),
+(7,"Ap #285-4595 Etiam Street","2020-09-10",null,"livré"),
 (8,"P.O. Box 404, 3710 Ornare. St.","2020-09-10",null,"livré"),
 (9,"660-7974 Erat Av.","2020-09-11",null,"livré"),
 (10,"702-3060 Est. Rd.","2020-09-15",null,"livré");
@@ -689,15 +700,15 @@ VALUES
 (12,"798-3366 Id St.","2020-09-26","rupture de stock , livré en retard","livré"),
 (13,"P.O. Box 350, 9578 Lectus St.","2020-09-25",null,"livré"),
 (14,"P.O. Box 350, 9578 Lectus St.","2020-10-27",null ,"livré"),
-(15,"798-3366 Id St.","2020-10-15",null,'livré'),
+(15,"798-3366 Id St.","2020-10-15","livraison partielle",'livré'),
 (16,"Ap #269-9938 Vulputate Rd.","2020-10-17",null,"livré"),
 (17,"702-3060 Est. Rd.","2020-10-14",null,"livré"),
 (18,"Ap #269-9938 Vulputate Rd","2020-10-14",null,"livré"),
 (19,"798-3366 Id St.","2020-10-18",null,"livré"),
-(20,"702-3060 Est. Rd.","2020-10-25","colis livré au mauvais destinataire.Retourné puis livré","livré");
+(20,"Ap #285-4595 Etiam Street","2020-10-25","colis livré au mauvais destinataire.Retourné","non livré");
 INSERT INTO `livraison` (`livr_id`,`livr_adress`,`livr_date`,`livr_details`,`livr_status`) 
 VALUES 
-(21,"5751 Netus Avenue","2020-10-18",null,"livré"),
+(21,"702-3060 Est. Rd.","2020-10-18",null,"livré"),
 (22,"Ap #269-9938 Vulputate Rd.","2020-10-23",null,"livré"),
 (23,"Ap #398-6608 Velit. Ave","2020-10-21",null,"livré"),
 (24,"Ap #285-4595 Etiam Street","2020-10-21",null,"livré"),
@@ -706,84 +717,219 @@ VALUES
 (27,"702-3060 Est. Rd.","2020-10-31",null,"livré"),
 (28,"P.O. Box 350, 9578 Lectus St.",null,"colis oublié","livraison en cours"),
 (29,"702-3060 Est. Rd.","2020-11-20",null,"livré"),
-(30,"5751 Netus Avenue",null,null,"non livré");
+(30,"5751 Netus Avenue",null,null,"non livré"),
+(35,"798-3366 Id St.","2020-10-25","deuxieme partie de commande livrée",
+"livré"),
+(36,"5751 Netus Avenue","2020-10-26",null, "livré");
+
 
 
 
 -- ligne de livraison --
 
-INSERT INTO `ligne_de_livraison` (`lign_livr_id`,`lign_livr_lign_cmd_id`,`lign_livr_livr_id`) 
+INSERT INTO `ligne_de_livraison` (`lign_livr_id`,`lign_livr_qtite`,`lign_livr_lign_cmd_id`,`lign_livr_livr_id`) 
 VALUES 
-(1,16,1),
-(2,31,2),
-(3,32,2),
-(4,14,3),
-(5,23,4),
-(6,26,5),
-(7,35,6),
-(8,5,7),
-(9,7,8),
-(10,8,8),
-(11,36,9),
-(12,24,10),
-(13,27,11),
-(14,15,12),
-(15,13,13),
-(16,34,14),
-(17,3,15),
-(18,4,15),
-(19,29,16),
-(20,1,17),
-(21,6,18),
-(22,17,19),
-(23,25,20),
-(24,22,21),
-(25,9,22),
-(26,19,23),
-(27,20,24),
-(28,21,24),
-(29,28,25),
-(30,30,26),
-(31,18,27),
-(32,33,28),
-(33,10,29),
-(34,11,29),
-(35,12,29),
-(36,2,30);
+(1,1,16,1),
+(2,1,31,2),
+(3,2,32,2),
+(4,1,14,3),
+(5,1,23,4),
+(6,1,26,5),
+(7,1,35,6),
+(8,1,5,7),
+(9,1,7,8),
+(10,1,8,8),
+(11,1,36,9),
+(12,1,24,10),
+(13,1,27,11),
+(14,1,15,12),
+(15,1,13,13),
+(16,1,34,14),
+(17,4,3,15),
+(18,1,4,15),
+(19,1,29,16),
+(20,1,1,17),
+(21,1,6,18),
+(22,1,17,19),
+(23,1,25,20),
+(24,1,22,21),
+(25,1,9,22),
+(26,1,19,23),
+(27,1,20,24),
+(28,1,21,24),
+(29,1,28,25),
+(30,1,30,26),
+(31,1,18,27),
+(32,1,33,28),
+(33,1,10,29),
+(34,1,11,29),
+(35,2,12,29),
+(36,1,2,30),
+(38,2,3,35),
+(39,1,25,36);
 
--- facture --
-INSERT INTO `facture` (`fact_ref`,`fact_adress`,`fact_paym_date`,`fact_cmd_total`,`fact_date`,`fact_tot_discount`,`fact_tva`,`fact_coeff_prix`,`fact_com_ref`) 
+
+-- alimenter contacter--
+
+
+INSERT INTO `contacter` (`cli_ref`,`serv_id`) 
 VALUES 
-("76524","5751 Netus Avenue","2020-08-24",86,"2020-08-24",null,20,1.5,"92361"),
-("76525","Ap #285-4595 Etiam Street","2020-08-27",369.99,"2020-08-27",null,20,1.6,"92375"),
-("76526","Ap #285-4595 Etiam Street","2020-08-28",86,"2020-08-28",10,20,1.6,"92359"),
-("76527","798-3366 Id St.","2020-09-01",359,"2020-09-01",NULL,20,1.5,"92367"),
-("76528","P.O. Box 350, 9578 Lectus St.","2020-09-04",859,"2020-09-04",null,20,1.6,"92370"),
-("76529","Ap #285-4595 Etiam Street","2020-09-05",699,"2020-09-05",20,20,1.6,"92378"),
-("76530","Ap #285-4595 Etiam Street","2020-09-07",586,"2020-09-07",20,20,1.6,"92353"),
-("76531","P.O. Box 404, 3710 Ornare. St","2020-09-30",945,"2020-09-08",null,20,1.2,"92355"),
-("76532","660-7974 Erat Av.","2020-09-09",487,"2020-09-09",null,20,1.6,"92379"),
-("76533","702-3060 Est. Rd.","2020-09-30",699,"2020-09-11",NULL,20,1.1,"92368"),
-("76534","Ap #617-750 Amet, St.","2020-09-30",329,"2020-09-12",null,20,1.3,"92371"),
-("76535","798-3366 Id St.","2020-09-16",3459,"2020-09-16",null,20,1.5,"92360"),
-("76536","P.O. Box 350, 9578 Lectus St.","2020-09-20",59,"2020-09-20",null,20,1.6,"92358"),
-("76537","P.O. Box 350, 9578 Lectus St.","2020-09-23",99.00,"2020-09-23",null,20,1.6,"92377"),
-("76538","798-3366 Id St.","2020-10-09",369.99,"2020-10-09",null,20,1.5,"92352"),
-("76539","Ap #269-9938 Vulputate Rd.","2020-10-30",59.00,"2020-10-09",null,20,1.3,"92373"),
-("76540","702-3060 Est. Rd.","2020-10-30",86.00,"2020-10-10",null,20,1.1,"92350"),
-("76541","Ap #269-9938 Vulputate Rd.","2020-10-30",487.00,"2020-10-11",null,20,1.3,"92354"),
-("76542","798-3366 Id St.","2020-10-13",19.00,"2020-10-13",null,20,1.5,"92362"),
-("76543","702-3060 Est. Rd.","2020-10-30",859.00,"2020-10-15",null,20,1.1,"92366"),
-("76544","5751 Netus Avenue","2020-10-15",99,"2020-10-15",null,20,1.5,"92369"),
-("76545","Ap #269-9938 Vulputate Rd.","2020-10-30",15,"2020-10-19",null,20,1.3,"92356"),
-("76546","Ap #398-6608 Velit. Ave","2020-10-30",487,"2020-10-19",null,20,1.2,"92364"),
-("76547","Ap #285-4595 Etiam Street","2020-10-20",91.99,"2020-10-20",null,20,1.6,"92365"),
-("76548","798-3366 Id St.","2020-10-22",19.00,"2020-10-22",null,20,1.5,"92372"),
-("76549","Ap #492-9566 Et Road","2020-10-25",699.00,"2020-10-25",null,20,1.5,"92374"),
-("76550","702-3060 Est. Rd.","2020-10-30",586.00,"2020-10-29",null,20,1.1,"92363"),
-("76551","P.O. Box 350, 9578 Lectus St.","2020-11-08",69.00,"2020-11-08",null,20,1.6,"92376"),
-("76552","702-3060 Est. Rd.","2020-11-30",74.50,"2020-11-18",null,20,1.1,"92357"),
-("76553","5751 Netus Avenue","2020-11-23",1099.00,"2020-11-23",null,20,1.5,"92351");
 
+
+("53702",1),
+("53703",1),
+("53704",1),
+("53705",1),
+("53706",1),
+("53707",1),
+("53708",1),
+("53709",1),
+("53710",1),
+("53711",1),
+("53603",1),
+("53604",1),
+("53605",1),
+("53606",1),
+("53607",1),
+("53608",1),
+("53609",1),
+("53610",1),
+("53611",1),
+("53612",1),
+("57603",1),
+("57604",1),
+("57605",1),
+("57606",1),
+("57607",1),
+("57608",1),
+("57609",1),
+("57610",1),
+("57611",1),
+("57612",1),
+
+("53702",2),
+("53703",2),
+("53704",2),
+("53705",2),
+("53706",2),
+("53707",2),
+("53708",2),
+("53709",2),
+("53710",2),
+("53711",2),
+("53603",2),
+("53604",2),
+("53605",2),
+("53606",2),
+("53607",2),
+("53608",2),
+("53609",2),
+("53610",2),
+("53611",2),
+("53612",2),
+("57603",2),
+("57604",2),
+("57605",2),
+("57606",2),
+("57607",2),
+("57608",2),
+("57609",2),
+("57610",2),
+("57611",2),
+("57612",2),
+
+
+("53702",3),
+("53703",3),
+("53704",3),
+("53705",3),
+("53706",3),
+("53707",3),
+("53708",3),
+("53709",3),
+("53710",3),
+("53711",3),
+("53603",3),
+("53604",3),
+("53605",3),
+("53606",3),
+("53607",3),
+("53608",3),
+("53609",3),
+("53610",3),
+("53611",3),
+("53612",3),
+("57603",3),
+("57604",3),
+("57605",3),
+("57606",3),
+("57607",3),
+("57608",3),
+("57609",3),
+("57610",3),
+("57611",3),
+("57612",3),
+
+("53702",4),
+("53703",4),
+("53704",4),
+("53705",4),
+("53706",4),
+("53707",4),
+("53708",4),
+("53709",4),
+("53710",4),
+("53711",4),
+("53603",4),
+("53604",4),
+("53605",4),
+("53606",4),
+("53607",4),
+("53608",4),
+("53609",4),
+("53610",4),
+("53611",4),
+("53612",4),
+("57603",4),
+("57604",4),
+("57605",4),
+("57606",4),
+("57607",4),
+("57608",4),
+("57609",4),
+("57610",4),
+("57611",4),
+("57612",4),
+
+("53702",5),
+("53703",5),
+("53704",5),
+("53705",5),
+("53706",5),
+("53707",5),
+("53708",5),
+("53709",5),
+("53710",5),
+("53711",5),
+("53603",5),
+("53604",5),
+("53605",5),
+("53606",5),
+("53607",5),
+("53608",5),
+("53609",5),
+("53610",5),
+("53611",5),
+("53612",5),
+("57603",5),
+("57604",5),
+("57605",5),
+("57606",5),
+("57607",5),
+("57608",5),
+("57609",5),
+("57610",5),
+("57611",5),
+("57612",5);
 
 
